@@ -1,13 +1,18 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
+
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Prattle</title>
 
     <link rel="icon" type="image/png" href="/favicon.png">
 
     <style>
+
         * {
             box-sizing: border-box;
         }
@@ -123,7 +128,9 @@
         #skipButton:hover {
             background: #555;
         }
+
     </style>
+
 </head>
 
 <body>
@@ -131,15 +138,23 @@
 <div class="container">
 
     <header>
+
         <h1>Prattle</h1>
-        <div id="status">Parle à quelqu'un que tu ne connais pas.</div>
+
+        <div id="status">
+            Parle à quelqu'un que tu ne connais pas.
+        </div>
+
     </header>
 
     <div id="messages"></div>
 
-    <button id="startButton">Commencer</button>
+    <button id="startButton">
+        Commencer
+    </button>
 
     <form id="chatForm">
+
         <input
             id="messageInput"
             type="text"
@@ -147,9 +162,20 @@
             autocomplete="off"
         >
 
-        <button id="sendButton" type="submit">Envoyer</button>
+        <button
+            id="sendButton"
+            type="submit"
+        >
+            Envoyer
+        </button>
 
-        <button id="skipButton" type="button">Passer</button>
+        <button
+            id="skipButton"
+            type="button"
+        >
+            Passer
+        </button>
+
     </form>
 
 </div>
@@ -157,14 +183,21 @@
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
+
     const socket = io();
 
     const status = document.getElementById("status");
+
     const startButton = document.getElementById("startButton");
+
     const messages = document.getElementById("messages");
+
     const chatForm = document.getElementById("chatForm");
+
     const messageInput = document.getElementById("messageInput");
+
     const skipButton = document.getElementById("skipButton");
+
 
     // Commencer une recherche
     startButton.addEventListener("click", () => {
@@ -172,44 +205,60 @@
         socket.emit("startChat");
 
         startButton.disabled = true;
-        startButton.textContent = "Recherche de quelqu'un...";
-        status.textContent = "Recherche d'un inconnu...";
+
+        startButton.textContent =
+            "Recherche de quelqu'un...";
+
+        status.textContent =
+            "Recherche d'un inconnu...";
     });
 
-    // En attente d'une personne
+
+    // Utilisateur en attente
     socket.on("waiting", () => {
 
-        status.textContent = "En attente de quelqu'un...";
+        status.textContent =
+            "En attente de quelqu'un...";
 
         startButton.style.display = "none";
+
         chatForm.style.display = "flex";
     });
+
 
     // Conversation trouvée
     socket.on("chatStarted", () => {
 
-        status.textContent = "Vous êtes maintenant en conversation.";
+        status.textContent =
+            "Vous êtes maintenant en conversation.";
 
         startButton.style.display = "none";
+
         chatForm.style.display = "flex";
 
         messageInput.focus();
     });
+
 
     // Envoyer un message
     chatForm.addEventListener("submit", (event) => {
 
         event.preventDefault();
 
-        const message = messageInput.value.trim();
+        const message =
+            messageInput.value.trim();
 
-        if (!message) return;
+        if (!message) {
+            return;
+        }
 
         socket.emit("message", message);
 
         messageInput.value = "";
+
         messageInput.focus();
     });
+
 
     // Passer à une autre personne
     skipButton.addEventListener("click", () => {
@@ -217,33 +266,47 @@
         socket.emit("skipChat");
 
         messages.innerHTML = "";
+
         messageInput.value = "";
 
-        status.textContent = "Recherche de quelqu'un...";
+        status.textContent =
+            "Recherche de quelqu'un...";
     });
 
-    // L'autre personne a passé
-    socket.on("partnerDisconnected", () => {
 
-    messages.innerHTML = "";
-
-    status.textContent = "L'autre personne a quitté la conversation.";
-
-    setTimeout(() => {
-        status.textContent = "Vous pouvez rechercher quelqu'un d'autre.";
-    }, 1500);
-});
-    
+    // L'autre personne clique sur "Passer"
     socket.on("partnerSkipped", () => {
 
         messages.innerHTML = "";
 
-        status.textContent = "L'autre personne est partie.";
+        status.textContent =
+            "L'autre personne est partie.";
 
         setTimeout(() => {
-            status.textContent = "Vous pouvez rechercher quelqu'un d'autre.";
+
+            status.textContent =
+                "Vous pouvez rechercher quelqu'un d'autre.";
+
         }, 1500);
     });
+
+
+    // L'autre personne ferme la page
+    socket.on("partnerDisconnected", () => {
+
+        messages.innerHTML = "";
+
+        status.textContent =
+            "L'autre personne a quitté la conversation.";
+
+        setTimeout(() => {
+
+            status.textContent =
+                "Vous pouvez rechercher quelqu'un d'autre.";
+
+        }, 1500);
+    });
+
 
     // Réception d'un message
     socket.on("message", (data) => {
@@ -253,18 +316,25 @@
         div.classList.add("message");
 
         if (data.sender === socket.id) {
+
             div.classList.add("mine");
+
         } else {
+
             div.classList.add("other");
+
         }
 
         div.textContent = data.text;
 
         messages.appendChild(div);
 
-        messages.scrollTop = messages.scrollHeight;
+        messages.scrollTop =
+            messages.scrollHeight;
     });
+
 </script>
 
 </body>
+
 </html>

@@ -15,7 +15,7 @@ app.use(express.static(path.join(__dirname, "public")));
 // File des utilisateurs en attente
 let waitingUsers = [];
 
-// Mettre un utilisateur en attente
+// Ajouter un utilisateur à la file d'attente
 function addToWaiting(socket) {
 
     // Éviter les doublons
@@ -28,25 +28,24 @@ function addToWaiting(socket) {
     console.log("Utilisateur en attente :", socket.id);
 }
 
-// Trouver deux utilisateurs et créer une conversation
+// Chercher deux utilisateurs à mettre ensemble
 function findMatch() {
 
-    // Nettoyer les utilisateurs déconnectés
+    // Retirer les utilisateurs déconnectés
     waitingUsers = waitingUsers.filter(socket => socket.connected);
 
-    // Tant qu'il y a au moins deux personnes
     while (waitingUsers.length >= 2) {
 
         const user1 = waitingUsers.shift();
         const user2 = waitingUsers.shift();
 
-        // Créer une conversation privée
+        // Créer une room privée
         const room = `room-${user1.id}-${user2.id}`;
 
         user1.join(room);
         user2.join(room);
 
-        // Prévenir les deux personnes
+        // Dire aux deux utilisateurs que la conversation commence
         io.to(room).emit("chatStarted");
 
         console.log("Chat créé :", room);
@@ -57,25 +56,26 @@ io.on("connection", (socket) => {
 
     console.log("Nouvelle connexion :", socket.id);
 
-    // Quelqu'un clique sur "Commencer"
+    // L'utilisateur clique sur "Commencer"
     socket.on("startChat", () => {
 
         addToWaiting(socket);
         findMatch();
     });
 
-    // Passer la conversation
+    // L'utilisateur clique sur "Passer"
     socket.on("skipChat", () => {
 
+        // Trouver la room actuelle
         const rooms = [...socket.rooms];
         const room = rooms.find(r => r !== socket.id);
 
         if (room) {
 
-            // Prévenir l'autre personne
+            // Prévenir l'autre utilisateur
             socket.to(room).emit("partnerSkipped");
 
-            // Faire quitter la room à tout le monde
+            // Faire sortir tout le monde de la room
             const roomSockets = io.sockets.adapter.rooms.get(room);
 
             if (roomSockets) {
@@ -91,14 +91,14 @@ io.on("connection", (socket) => {
             }
         }
 
-        // Remettre celui qui a cliqué dans la file
+        // Remettre l'utilisateur dans la file
         addToWaiting(socket);
 
-        // Chercher immédiatement une nouvelle personne
+        // Chercher immédiatement quelqu'un
         findMatch();
     });
 
-    // Message envoyé
+    // Envoyer un message
     socket.on("message", (message) => {
 
         const rooms = [...socket.rooms];
@@ -113,27 +113,40 @@ io.on("connection", (socket) => {
         }
     });
 
-    // Quelqu'un quitte la page / ferme l'onglet
-    socket.on("disconnect", () => {
+    // L'utilisateur quitte la page / ferme l'onglet
+    socket.on("disconnecting", () => {
 
-        console.log("Utilisateur déconnecté :", socket.id);
+        console.log("Utilisateur quitte la page :", socket.id);
 
         // Retirer l'utilisateur de la file d'attente
         waitingUsers = waitingUsers.filter(
             user => user.id !== socket.id
         );
 
-        // Trouver sa conversation
+        // IMPORTANT :
+        // "disconnecting" arrive avant que Socket.IO
+        // retire la socket de ses rooms.
         const rooms = [...socket.rooms];
         const room = rooms.find(r => r !== socket.id);
 
         if (room) {
 
-            // Prévenir l'autre personne
+            // Prévenir l'autre utilisateur
             socket.to(room).emit("partnerDisconnected");
 
-            console.log("Partenaire parti :", room);
+            console.log("Partenaire déconnecté :", room);
         }
+    });
+
+    // Déconnexion terminée
+    socket.on("disconnect", () => {
+
+        console.log("Déconnexion terminée :", socket.id);
+
+        // Nettoyage supplémentaire de la file
+        waitingUsers = waitingUsers.filter(
+            user => user.id !== socket.id
+        );
     });
 });
 

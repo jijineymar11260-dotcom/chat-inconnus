@@ -12,46 +12,65 @@ const PORT = process.env.PORT || 3000;
 // Servir le site
 app.use(express.static(path.join(__dirname, "public")));
 
-// Personne actuellement en attente
-let waitingUser = null;
+// File des utilisateurs en attente
+let waitingUsers = [];
+
+// Mettre un utilisateur en attente
+function addToWaiting(socket) {
+
+    // Éviter les doublons
+    if (!waitingUsers.includes(socket)) {
+        waitingUsers.push(socket);
+    }
+
+    socket.emit("waiting");
+
+    console.log("Utilisateur en attente :", socket.id);
+}
+
+// Trouver deux utilisateurs et créer une conversation
+function findMatch() {
+
+    // Nettoyer les utilisateurs déconnectés
+    waitingUsers = waitingUsers.filter(socket => socket.connected);
+
+    // Tant qu'il y a au moins deux personnes
+    while (waitingUsers.length >= 2) {
+
+        const user1 = waitingUsers.shift();
+        const user2 = waitingUsers.shift();
+
+        // Créer une conversation privée
+        const room = `room-${user1.id}-${user2.id}`;
+
+        user1.join(room);
+        user2.join(room);
+
+        // Prévenir les deux personnes
+        io.to(room).emit("chatStarted");
+
+        console.log("Chat créé :", room);
+    }
+}
 
 io.on("connection", (socket) => {
+
     console.log("Nouvelle connexion :", socket.id);
 
     // Quelqu'un clique sur "Commencer"
     socket.on("startChat", () => {
 
-        // Si quelqu'un attend déjà
-        if (waitingUser && waitingUser.connected) {
+        // Ajouter à la file
+        addToWaiting(socket);
 
-            const otherUser = waitingUser;
-            waitingUser = null;
-
-            // Création d'une conversation privée
-            const room = `room-${otherUser.id}-${socket.id}`;
-
-            otherUser.join(room);
-            socket.join(room);
-
-            // Prévenir les deux personnes
-            io.to(room).emit("chatStarted");
-
-            console.log("Chat créé :", room);
-
-        } else {
-
-            // Sinon, cette personne attend
-            waitingUser = socket;
-
-            socket.emit("waiting");
-
-            console.log("Utilisateur en attente :", socket.id);
-        }
+        // Chercher immédiatement quelqu'un
+        findMatch();
     });
 
-        // Passer la conversation
+    // Passer la conversation
     socket.on("skipChat", () => {
 
+        // Trouver la room actuelle
         const rooms = [...socket.rooms];
         const room = rooms.find(r => r !== socket.id);
 
@@ -60,50 +79,41 @@ io.on("connection", (socket) => {
             // Prévenir l'autre personne
             socket.to(room).emit("partnerSkipped");
 
-            // Quitter la conversation
+            // Faire quitter la room
             socket.leave(room);
 
-            // Remettre l'utilisateur en attente
-            waitingUser = socket;
+            // Faire quitter la room à l'autre personne
+            const roomSockets = io.sockets.adapter.rooms.get(room);
 
-            socket.emit("waiting");
+            if (roomSockets) {
 
-            console.log("Conversation passée :", socket.id);
+                for (const socketId of roomSockets) {
+
+                    const otherSocket = io.sockets.sockets.get(socketId);
+
+                    if (otherSocket) {
+                        otherSocket.leave(room);
+                    }
+                }
+            }
         }
+
+        // Remettre celui qui a cliqué dans la file
+        addToWaiting(socket);
+
+        // Chercher immédiatement une nouvelle personne
+        findMatch();
     });
-        // Passer la conversation
-    socket.on("skipChat", () => {
 
-        const rooms = [...socket.rooms];
-        const room = rooms.find(r => r !== socket.id);
-
-        if (room) {
-
-            // Prévenir l'autre personne
-            socket.to(room).emit("partnerSkipped");
-
-            // Quitter la conversation
-            socket.leave(room);
-
-            // Remettre l'utilisateur en attente
-            waitingUser = socket;
-
-            socket.emit("waiting");
-
-            console.log("Conversation passée :", socket.id);
-        }
-    });
-    
     // Message envoyé
     socket.on("message", (message) => {
 
-        if (!socket.rooms) return;
-
-        // Trouver la room de discussion
         const rooms = [...socket.rooms];
+
         const room = rooms.find(r => r !== socket.id);
 
         if (room) {
+
             io.to(room).emit("message", {
                 text: message,
                 sender: socket.id
@@ -114,9 +124,10 @@ io.on("connection", (socket) => {
     // Déconnexion
     socket.on("disconnect", () => {
 
-        if (waitingUser && waitingUser.id === socket.id) {
-            waitingUser = null;
-        }
+        // Retirer l'utilisateur de la file d'attente
+        waitingUsers = waitingUsers.filter(
+            user => user.id !== socket.id
+        );
 
         console.log("Déconnexion :", socket.id);
     });

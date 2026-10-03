@@ -60,17 +60,13 @@ io.on("connection", (socket) => {
     // Quelqu'un clique sur "Commencer"
     socket.on("startChat", () => {
 
-        // Ajouter à la file
         addToWaiting(socket);
-
-        // Chercher immédiatement quelqu'un
         findMatch();
     });
 
     // Passer la conversation
     socket.on("skipChat", () => {
 
-        // Trouver la room actuelle
         const rooms = [...socket.rooms];
         const room = rooms.find(r => r !== socket.id);
 
@@ -79,10 +75,7 @@ io.on("connection", (socket) => {
             // Prévenir l'autre personne
             socket.to(room).emit("partnerSkipped");
 
-            // Faire quitter la room
-            socket.leave(room);
-
-            // Faire quitter la room à l'autre personne
+            // Faire quitter la room à tout le monde
             const roomSockets = io.sockets.adapter.rooms.get(room);
 
             if (roomSockets) {
@@ -109,7 +102,6 @@ io.on("connection", (socket) => {
     socket.on("message", (message) => {
 
         const rooms = [...socket.rooms];
-
         const room = rooms.find(r => r !== socket.id);
 
         if (room) {
@@ -121,15 +113,27 @@ io.on("connection", (socket) => {
         }
     });
 
-    // Déconnexion
+    // Quelqu'un quitte la page / ferme l'onglet
     socket.on("disconnect", () => {
+
+        console.log("Utilisateur déconnecté :", socket.id);
 
         // Retirer l'utilisateur de la file d'attente
         waitingUsers = waitingUsers.filter(
             user => user.id !== socket.id
         );
 
-        console.log("Déconnexion :", socket.id);
+        // Trouver sa conversation
+        const rooms = [...socket.rooms];
+        const room = rooms.find(r => r !== socket.id);
+
+        if (room) {
+
+            // Prévenir l'autre personne
+            socket.to(room).emit("partnerDisconnected");
+
+            console.log("Partenaire parti :", room);
+        }
     });
 });
 

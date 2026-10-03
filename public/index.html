@@ -28,6 +28,17 @@
             align-items: center;
         }
 
+        /* Logo en haut à gauche */
+        .site-logo {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            z-index: 1000;
+        }
+
         .container {
             width: 100%;
             max-width: 600px;
@@ -129,211 +140,255 @@
             background: #555;
         }
 
+        /* Adaptation pour les petits écrans */
+        @media (max-width: 600px) {
+
+            .site-logo {
+                top: 10px;
+                left: 10px;
+                width: 45px;
+                height: 45px;
+            }
+
+            .container {
+                width: 100%;
+                height: 100vh;
+                border-radius: 0;
+            }
+
+            #sendButton,
+            #skipButton {
+                padding: 12px;
+            }
+        }
+
     </style>
 
 </head>
 
 <body>
 
-<div class="container">
+    <!-- Logo -->
+    <img
+        src="/logo.png"
+        class="site-logo"
+        alt="Prattle"
+    >
 
-    <header>
+    <div class="container">
 
-        <h1>Prattle</h1>
+        <header>
 
-        <div id="status">
-            Parle à quelqu'un que tu ne connais pas.
-        </div>
+            <h1>Prattle</h1>
 
-    </header>
+            <div id="status">
+                Parle à quelqu'un que tu ne connais pas.
+            </div>
 
-    <div id="messages"></div>
+        </header>
 
-    <button id="startButton">
-        Commencer
-    </button>
+        <div id="messages"></div>
 
-    <form id="chatForm">
-
-        <input
-            id="messageInput"
-            type="text"
-            placeholder="Écris un message..."
-            autocomplete="off"
-        >
-
-        <button
-            id="sendButton"
-            type="submit"
-        >
-            Envoyer
+        <button id="startButton">
+            Commencer
         </button>
 
-        <button
-            id="skipButton"
-            type="button"
-        >
-            Passer
-        </button>
+        <form id="chatForm">
 
-    </form>
+            <input
+                id="messageInput"
+                type="text"
+                placeholder="Écris un message..."
+                autocomplete="off"
+            >
 
-</div>
+            <button
+                id="sendButton"
+                type="submit"
+            >
+                Envoyer
+            </button>
 
-<script src="/socket.io/socket.io.js"></script>
+            <button
+                id="skipButton"
+                type="button"
+            >
+                Passer
+            </button>
 
-<script>
+        </form>
 
-    const socket = io();
+    </div>
 
-    const status = document.getElementById("status");
+    <script src="/socket.io/socket.io.js"></script>
 
-    const startButton = document.getElementById("startButton");
+    <script>
 
-    const messages = document.getElementById("messages");
+        const socket = io();
 
-    const chatForm = document.getElementById("chatForm");
+        const status =
+            document.getElementById("status");
 
-    const messageInput = document.getElementById("messageInput");
+        const startButton =
+            document.getElementById("startButton");
 
-    const skipButton = document.getElementById("skipButton");
+        const messages =
+            document.getElementById("messages");
 
+        const chatForm =
+            document.getElementById("chatForm");
 
-    // Commencer une recherche
-    startButton.addEventListener("click", () => {
+        const messageInput =
+            document.getElementById("messageInput");
 
-        socket.emit("startChat");
-
-        startButton.disabled = true;
-
-        startButton.textContent =
-            "Recherche de quelqu'un...";
-
-        status.textContent =
-            "Recherche d'un inconnu...";
-    });
-
-
-    // Utilisateur en attente
-    socket.on("waiting", () => {
-
-        status.textContent =
-            "En attente de quelqu'un...";
-
-        startButton.style.display = "none";
-
-        chatForm.style.display = "flex";
-    });
+        const skipButton =
+            document.getElementById("skipButton");
 
 
-    // Conversation trouvée
-    socket.on("chatStarted", () => {
+        // Commencer une recherche
+        startButton.addEventListener("click", () => {
 
-        status.textContent =
-            "Vous êtes maintenant en conversation.";
+            socket.emit("startChat");
 
-        startButton.style.display = "none";
+            startButton.disabled = true;
 
-        chatForm.style.display = "flex";
-
-        messageInput.focus();
-    });
-
-
-    // Envoyer un message
-    chatForm.addEventListener("submit", (event) => {
-
-        event.preventDefault();
-
-        const message =
-            messageInput.value.trim();
-
-        if (!message) {
-            return;
-        }
-
-        socket.emit("message", message);
-
-        messageInput.value = "";
-
-        messageInput.focus();
-    });
-
-
-    // Passer à une autre personne
-    skipButton.addEventListener("click", () => {
-
-        socket.emit("skipChat");
-
-        messages.innerHTML = "";
-
-        messageInput.value = "";
-
-        status.textContent =
-            "Recherche de quelqu'un...";
-    });
-
-
-    // L'autre personne clique sur "Passer"
-    socket.on("partnerSkipped", () => {
-
-        messages.innerHTML = "";
-
-        status.textContent =
-            "L'autre personne est partie.";
-
-        setTimeout(() => {
+            startButton.textContent =
+                "Recherche de quelqu'un...";
 
             status.textContent =
-                "Vous pouvez rechercher quelqu'un d'autre.";
+                "Recherche d'un inconnu...";
 
-        }, 1500);
-    });
+        });
 
 
-    // L'autre personne ferme la page
-    socket.on("partnerDisconnected", () => {
-
-        messages.innerHTML = "";
-
-        status.textContent =
-            "L'autre personne a quitté la conversation.";
-
-        setTimeout(() => {
+        // Utilisateur en attente
+        socket.on("waiting", () => {
 
             status.textContent =
-                "Vous pouvez rechercher quelqu'un d'autre.";
+                "En attente de quelqu'un...";
 
-        }, 1500);
-    });
+            startButton.style.display = "none";
+
+            chatForm.style.display = "flex";
+
+        });
 
 
-    // Réception d'un message
-    socket.on("message", (data) => {
+        // Conversation trouvée
+        socket.on("chatStarted", () => {
 
-        const div = document.createElement("div");
+            status.textContent =
+                "Vous êtes maintenant en conversation.";
 
-        div.classList.add("message");
+            startButton.style.display = "none";
 
-        if (data.sender === socket.id) {
+            chatForm.style.display = "flex";
 
-            div.classList.add("mine");
+            messageInput.focus();
 
-        } else {
+        });
 
-            div.classList.add("other");
 
-        }
+        // Envoyer un message
+        chatForm.addEventListener("submit", (event) => {
 
-        div.textContent = data.text;
+            event.preventDefault();
 
-        messages.appendChild(div);
+            const message =
+                messageInput.value.trim();
 
-        messages.scrollTop =
-            messages.scrollHeight;
-    });
+            if (!message) {
+                return;
+            }
 
-</script>
+            socket.emit("message", message);
+
+            messageInput.value = "";
+
+            messageInput.focus();
+
+        });
+
+
+        // Passer à une autre personne
+        skipButton.addEventListener("click", () => {
+
+            socket.emit("skipChat");
+
+            messages.innerHTML = "";
+
+            messageInput.value = "";
+
+            status.textContent =
+                "Recherche de quelqu'un...";
+
+        });
+
+
+        // L'autre personne clique sur Passer
+        socket.on("partnerSkipped", () => {
+
+            messages.innerHTML = "";
+
+            status.textContent =
+                "L'autre personne est partie.";
+
+            setTimeout(() => {
+
+                status.textContent =
+                    "Vous pouvez rechercher quelqu'un d'autre.";
+
+            }, 1500);
+
+        });
+
+
+        // L'autre personne ferme la page
+        socket.on("partnerDisconnected", () => {
+
+            messages.innerHTML = "";
+
+            status.textContent =
+                "L'autre personne a quitté la conversation.";
+
+            setTimeout(() => {
+
+                status.textContent =
+                    "Vous pouvez rechercher quelqu'un d'autre.";
+
+            }, 1500);
+
+        });
+
+
+        // Réception d'un message
+        socket.on("message", (data) => {
+
+            const div =
+                document.createElement("div");
+
+            div.classList.add("message");
+
+            if (data.sender === socket.id) {
+
+                div.classList.add("mine");
+
+            } else {
+
+                div.classList.add("other");
+
+            }
+
+            div.textContent = data.text;
+
+            messages.appendChild(div);
+
+            messages.scrollTop =
+                messages.scrollHeight;
+
+        });
+
+    </script>
 
 </body>
 

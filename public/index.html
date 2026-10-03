@@ -2,10 +2,201 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inconnu</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #111;
+            color: white;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            height: 90vh;
+            background: #1c1c1c;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid #333;
+        }
+
+        header h1 {
+            margin: 0 0 8px;
+        }
+
+        #status {
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        #messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            padding: 10px 14px;
+            border-radius: 12px;
+            max-width: 75%;
+            word-wrap: break-word;
+        }
+
+        .mine {
+            align-self: flex-end;
+            background: #5865f2;
+        }
+
+        .other {
+            align-self: flex-start;
+            background: #333;
+        }
+
+        #startButton {
+            margin: 20px;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: #5865f2;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #chatForm {
+            display: none;
+            padding: 15px;
+            gap: 10px;
+            border-top: 1px solid #333;
+        }
+
+        #messageInput {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: #333;
+            color: white;
+            outline: none;
+        }
+
+        #sendButton {
+            padding: 12px 18px;
+            border: none;
+            border-radius: 8px;
+            background: #5865f2;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
 </head>
+
 <body>
-    <h1>MON SITE FONCTIONNE</h1>
-    <p>Bonjour, le serveur fonctionne !</p>
+
+<div class="container">
+
+    <header>
+        <h1>Inconnu</h1>
+        <div id="status">Parle à quelqu'un que tu ne connais pas.</div>
+    </header>
+
+    <div id="messages"></div>
+
+    <button id="startButton">Commencer</button>
+
+    <form id="chatForm">
+        <input
+            id="messageInput"
+            type="text"
+            placeholder="Écris un message..."
+            autocomplete="off"
+        >
+        <button id="sendButton" type="submit">Envoyer</button>
+    </form>
+
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+    const socket = io();
+
+    const status = document.getElementById("status");
+    const startButton = document.getElementById("startButton");
+    const messages = document.getElementById("messages");
+    const chatForm = document.getElementById("chatForm");
+    const messageInput = document.getElementById("messageInput");
+
+    startButton.addEventListener("click", () => {
+        socket.emit("startChat");
+
+        startButton.disabled = true;
+        startButton.textContent = "Recherche de quelqu'un...";
+        status.textContent = "Recherche d'un inconnu...";
+    });
+
+    socket.on("waiting", () => {
+        status.textContent = "En attente de quelqu'un...";
+    });
+
+    socket.on("chatStarted", () => {
+        status.textContent = "Vous êtes maintenant en conversation.";
+        startButton.style.display = "none";
+        chatForm.style.display = "flex";
+        messageInput.focus();
+    });
+
+    chatForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+
+        const message = messageInput.value.trim();
+
+        if (!message) return;
+
+        socket.emit("message", message);
+
+        messageInput.value = "";
+        messageInput.focus();
+    });
+
+    socket.on("message", (data) => {
+        const div = document.createElement("div");
+
+        div.classList.add("message");
+
+        if (data.sender === socket.id) {
+            div.classList.add("mine");
+        } else {
+            div.classList.add("other");
+        }
+
+        div.textContent = data.text;
+
+        messages.appendChild(div);
+        messages.scrollTop = messages.scrollHeight;
+    });
+</script>
+
 </body>
 </html>

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prattle</title>
+
     <link rel="icon" type="image/png" href="/favicon.png">
 
     <style>
@@ -102,13 +103,25 @@
             outline: none;
         }
 
-        #sendButton {
+        #sendButton,
+        #skipButton {
             padding: 12px 18px;
             border: none;
             border-radius: 8px;
-            background: #5865f2;
             color: white;
             cursor: pointer;
+        }
+
+        #sendButton {
+            background: #5865f2;
+        }
+
+        #skipButton {
+            background: #444;
+        }
+
+        #skipButton:hover {
+            background: #555;
         }
     </style>
 </head>
@@ -119,23 +132,25 @@
 
     <header>
         <h1>Prattle</h1>
-        <div id="status">Trouve quelqu'un pour discuter</div>
+        <div id="status">Parle à quelqu'un que tu ne connais pas.</div>
     </header>
 
     <div id="messages"></div>
 
-    <button id="startButton">Trouver quelqu'un</button>
+    <button id="startButton">Commencer</button>
 
     <form id="chatForm">
-    <input
-        id="messageInput"
-        type="text"
-        placeholder="Écris un message..."
-        autocomplete="off"
-    >
-    <button id="sendButton" type="submit">Envoyer</button>
-    <button id="skipButton" type="button">Passer</button>
-</form>
+        <input
+            id="messageInput"
+            type="text"
+            placeholder="Écris un message..."
+            autocomplete="off"
+        >
+
+        <button id="sendButton" type="submit">Envoyer</button>
+
+        <button id="skipButton" type="button">Passer</button>
+    </form>
 
 </div>
 
@@ -149,8 +164,11 @@
     const messages = document.getElementById("messages");
     const chatForm = document.getElementById("chatForm");
     const messageInput = document.getElementById("messageInput");
+    const skipButton = document.getElementById("skipButton");
 
+    // Commencer une recherche
     startButton.addEventListener("click", () => {
+
         socket.emit("startChat");
 
         startButton.disabled = true;
@@ -158,18 +176,29 @@
         status.textContent = "Recherche d'un inconnu...";
     });
 
+    // En attente d'une personne
     socket.on("waiting", () => {
-        status.textContent = "En attente de quelqu'un...";
-    });
 
-    socket.on("chatStarted", () => {
-        status.textContent = "Vous êtes maintenant en conversation.";
+        status.textContent = "En attente de quelqu'un...";
+
         startButton.style.display = "none";
         chatForm.style.display = "flex";
+    });
+
+    // Conversation trouvée
+    socket.on("chatStarted", () => {
+
+        status.textContent = "Vous êtes maintenant en conversation.";
+
+        startButton.style.display = "none";
+        chatForm.style.display = "flex";
+
         messageInput.focus();
     });
 
+    // Envoyer un message
     chatForm.addEventListener("submit", (event) => {
+
         event.preventDefault();
 
         const message = messageInput.value.trim();
@@ -182,7 +211,32 @@
         messageInput.focus();
     });
 
+    // Passer à une autre personne
+    skipButton.addEventListener("click", () => {
+
+        socket.emit("skipChat");
+
+        messages.innerHTML = "";
+        messageInput.value = "";
+
+        status.textContent = "Recherche de quelqu'un...";
+    });
+
+    // L'autre personne a passé
+    socket.on("partnerSkipped", () => {
+
+        messages.innerHTML = "";
+
+        status.textContent = "L'autre personne est partie.";
+
+        setTimeout(() => {
+            status.textContent = "Vous pouvez rechercher quelqu'un d'autre.";
+        }, 1500);
+    });
+
+    // Réception d'un message
     socket.on("message", (data) => {
+
         const div = document.createElement("div");
 
         div.classList.add("message");
@@ -196,6 +250,7 @@
         div.textContent = data.text;
 
         messages.appendChild(div);
+
         messages.scrollTop = messages.scrollHeight;
     });
 </script>

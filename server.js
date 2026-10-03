@@ -49,6 +49,51 @@ io.on("connection", (socket) => {
         }
     });
 
+        // Passer la conversation
+    socket.on("skipChat", () => {
+
+        const rooms = [...socket.rooms];
+        const room = rooms.find(r => r !== socket.id);
+
+        if (room) {
+
+            // Prévenir l'autre personne
+            socket.to(room).emit("partnerSkipped");
+
+            // Quitter la conversation
+            socket.leave(room);
+
+            // Remettre l'utilisateur en attente
+            waitingUser = socket;
+
+            socket.emit("waiting");
+
+            console.log("Conversation passée :", socket.id);
+        }
+    });
+        // Passer la conversation
+    socket.on("skipChat", () => {
+
+        const rooms = [...socket.rooms];
+        const room = rooms.find(r => r !== socket.id);
+
+        if (room) {
+
+            // Prévenir l'autre personne
+            socket.to(room).emit("partnerSkipped");
+
+            // Quitter la conversation
+            socket.leave(room);
+
+            // Remettre l'utilisateur en attente
+            waitingUser = socket;
+
+            socket.emit("waiting");
+
+            console.log("Conversation passée :", socket.id);
+        }
+    });
+    
     // Message envoyé
     socket.on("message", (message) => {
 

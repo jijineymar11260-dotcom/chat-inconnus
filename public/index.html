@@ -223,6 +223,17 @@
     });
 
     // L'autre personne a passé
+    socket.on("partnerDisconnected", () => {
+
+    messages.innerHTML = "";
+
+    status.textContent = "L'autre personne a quitté la conversation.";
+
+    setTimeout(() => {
+        status.textContent = "Vous pouvez rechercher quelqu'un d'autre.";
+    }, 1500);
+});
+    
     socket.on("partnerSkipped", () => {
 
         messages.innerHTML = "";

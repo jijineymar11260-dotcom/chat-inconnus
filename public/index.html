@@ -5,11 +5,18 @@
 
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Prattle</title>
 
-    <link rel="icon" type="image/png" href="/favicon.png">
+    <link
+        rel="icon"
+        type="image/png"
+        href="/favicon.png"
+    >
 
     <style>
 
@@ -18,147 +25,287 @@
         }
 
         body {
+
             margin: 0;
+
             font-family: Arial, sans-serif;
+
             background: #111;
+
             color: white;
+
             height: 100vh;
+
             display: flex;
+
             justify-content: center;
+
             align-items: center;
         }
 
-        /* Logo en haut à gauche */
+        /* Logo */
+
         .site-logo {
+
             position: fixed;
+
             top: 20px;
+
             left: 20px;
+
             width: 60px;
+
             height: 60px;
+
             object-fit: contain;
+
             z-index: 1000;
         }
 
+        /* Conteneur principal */
+
         .container {
+
             width: 100%;
+
             max-width: 600px;
+
             height: 90vh;
+
             background: #1c1c1c;
+
             border-radius: 15px;
+
             display: flex;
+
             flex-direction: column;
+
             overflow: hidden;
         }
 
+        /* En-tête */
+
         header {
+
             padding: 20px;
+
             text-align: center;
+
             border-bottom: 1px solid #333;
         }
 
         header h1 {
+
             margin: 0 0 8px;
         }
 
         #status {
+
             color: #aaa;
+
             font-size: 14px;
+
+            margin-bottom: 8px;
         }
 
+        /* Compteur */
+
+        #stats {
+
+            color: #777;
+
+            font-size: 13px;
+        }
+
+        /* Messages */
+
         #messages {
+
             flex: 1;
+
             padding: 20px;
+
             overflow-y: auto;
+
             display: flex;
+
             flex-direction: column;
+
             gap: 10px;
         }
 
         .message {
+
             padding: 10px 14px;
+
             border-radius: 12px;
+
             max-width: 75%;
+
             word-wrap: break-word;
         }
 
         .mine {
+
             align-self: flex-end;
+
             background: #5865f2;
         }
 
         .other {
+
             align-self: flex-start;
+
             background: #333;
         }
 
+        /* Bouton commencer */
+
         #startButton {
+
             margin: 20px;
+
             padding: 15px;
+
             border: none;
+
             border-radius: 10px;
+
             background: #5865f2;
+
             color: white;
+
             font-size: 16px;
+
             cursor: pointer;
         }
 
+        #startButton:hover {
+
+            background: #4752c4;
+        }
+
+        #startButton:disabled {
+
+            opacity: 0.7;
+
+            cursor: default;
+        }
+
+        /* Formulaire de chat */
+
         #chatForm {
+
             display: none;
+
             padding: 15px;
+
             gap: 10px;
+
             border-top: 1px solid #333;
         }
 
         #messageInput {
+
             flex: 1;
+
             padding: 12px;
+
             border: none;
+
             border-radius: 8px;
+
             background: #333;
+
             color: white;
+
             outline: none;
+
+            min-width: 0;
         }
 
         #sendButton,
         #skipButton {
+
             padding: 12px 18px;
+
             border: none;
+
             border-radius: 8px;
+
             color: white;
+
             cursor: pointer;
         }
 
         #sendButton {
+
             background: #5865f2;
         }
 
         #skipButton {
+
             background: #444;
         }
 
         #skipButton:hover {
+
             background: #555;
         }
 
-        /* Adaptation pour les petits écrans */
+        #skipButton:disabled {
+
+            opacity: 0.5;
+
+            cursor: default;
+        }
+
+        /* Message site complet */
+
+        .full-message {
+
+            text-align: center;
+
+            color: #aaa;
+
+            padding: 30px;
+
+            font-size: 15px;
+        }
+
+        /* Mobile */
+
         @media (max-width: 600px) {
 
             .site-logo {
+
                 top: 10px;
+
                 left: 10px;
+
                 width: 45px;
+
                 height: 45px;
             }
 
             .container {
+
                 width: 100%;
+
                 height: 100vh;
+
                 border-radius: 0;
             }
 
             #sendButton,
             #skipButton {
+
                 padding: 12px;
+            }
+
+            #stats {
+
+                font-size: 12px;
             }
         }
 
@@ -169,6 +316,7 @@
 <body>
 
     <!-- Logo -->
+
     <img
         src="/logo.png"
         class="site-logo"
@@ -185,6 +333,10 @@
                 Parle à quelqu'un que tu ne connais pas.
             </div>
 
+            <div id="stats">
+                0 en discussion · 0 en recherche
+            </div>
+
         </header>
 
         <div id="messages"></div>
@@ -198,6 +350,7 @@
             <input
                 id="messageInput"
                 type="text"
+                maxlength="500"
                 placeholder="Écris un message..."
                 autocomplete="off"
             >
@@ -229,6 +382,9 @@
         const status =
             document.getElementById("status");
 
+        const stats =
+            document.getElementById("stats");
+
         const startButton =
             document.getElementById("startButton");
 
@@ -245,148 +401,291 @@
             document.getElementById("skipButton");
 
 
-        // Commencer une recherche
-        startButton.addEventListener("click", () => {
+        // =================================================
+        // COMPTEUR DES UTILISATEURS
+        // =================================================
 
-            socket.emit("startChat");
+        socket.on("stats", (data) => {
 
-            startButton.disabled = true;
-
-            startButton.textContent =
-                "Recherche de quelqu'un...";
-
-            status.textContent =
-                "Recherche d'un inconnu...";
+            stats.textContent =
+                `${data.chatting} en discussion · ${data.searching} en recherche`;
 
         });
 
 
-        // Utilisateur en attente
+        // =================================================
+        // COMMENCER
+        // =================================================
+
+        startButton.addEventListener(
+            "click",
+            () => {
+
+                startButton.disabled = true;
+
+                startButton.textContent =
+                    "Recherche de quelqu'un...";
+
+                status.textContent =
+                    "Recherche d'un inconnu...";
+
+                socket.emit("startChat");
+
+            }
+        );
+
+
+        // =================================================
+        // UTILISATEUR EN ATTENTE
+        // =================================================
+
         socket.on("waiting", () => {
 
             status.textContent =
                 "En attente de quelqu'un...";
 
-            startButton.style.display = "none";
+            startButton.style.display =
+                "none";
 
-            chatForm.style.display = "flex";
+            chatForm.style.display =
+                "flex";
+
+            // On ne peut pas discuter
+            // tant qu'on attend
+            messageInput.disabled =
+                true;
+
+            skipButton.disabled =
+                false;
 
         });
 
 
-        // Conversation trouvée
+        // =================================================
+        // CONVERSATION TROUVÉE
+        // =================================================
+
         socket.on("chatStarted", () => {
 
             status.textContent =
                 "Vous êtes maintenant en conversation.";
 
-            startButton.style.display = "none";
+            startButton.style.display =
+                "none";
 
-            chatForm.style.display = "flex";
+            chatForm.style.display =
+                "flex";
 
-            messageInput.focus();
+            messageInput.disabled =
+                false;
 
-        });
-
-
-        // Envoyer un message
-        chatForm.addEventListener("submit", (event) => {
-
-            event.preventDefault();
-
-            const message =
-                messageInput.value.trim();
-
-            if (!message) {
-                return;
-            }
-
-            socket.emit("message", message);
-
-            messageInput.value = "";
+            skipButton.disabled =
+                false;
 
             messageInput.focus();
 
         });
 
 
-        // Passer à une autre personne
-        skipButton.addEventListener("click", () => {
+        // =================================================
+        // ENVOYER UN MESSAGE
+        // =================================================
 
-            socket.emit("skipChat");
+        chatForm.addEventListener(
+            "submit",
+            (event) => {
 
-            messages.innerHTML = "";
+                event.preventDefault();
 
-            messageInput.value = "";
+                if (messageInput.disabled) {
+                    return;
+                }
 
-            status.textContent =
-                "Recherche de quelqu'un...";
+                const message =
+                    messageInput.value.trim();
 
-        });
+                if (!message) {
+                    return;
+                }
 
+                socket.emit(
+                    "message",
+                    message.substring(0, 500)
+                );
 
-        // L'autre personne clique sur Passer
-        socket.on("partnerSkipped", () => {
+                messageInput.value = "";
 
-            messages.innerHTML = "";
-
-            status.textContent =
-                "L'autre personne est partie.";
-
-            setTimeout(() => {
-
-                status.textContent =
-                    "Vous pouvez rechercher quelqu'un d'autre.";
-
-            }, 1500);
-
-        });
-
-
-        // L'autre personne ferme la page
-        socket.on("partnerDisconnected", () => {
-
-            messages.innerHTML = "";
-
-            status.textContent =
-                "L'autre personne a quitté la conversation.";
-
-            setTimeout(() => {
-
-                status.textContent =
-                    "Vous pouvez rechercher quelqu'un d'autre.";
-
-            }, 1500);
-
-        });
-
-
-        // Réception d'un message
-        socket.on("message", (data) => {
-
-            const div =
-                document.createElement("div");
-
-            div.classList.add("message");
-
-            if (data.sender === socket.id) {
-
-                div.classList.add("mine");
-
-            } else {
-
-                div.classList.add("other");
+                messageInput.focus();
 
             }
+        );
 
-            div.textContent = data.text;
 
-            messages.appendChild(div);
+        // =================================================
+        // PASSER
+        // =================================================
 
-            messages.scrollTop =
-                messages.scrollHeight;
+        skipButton.addEventListener(
+            "click",
+            () => {
 
-        });
+                // Éviter les doubles clics
+                skipButton.disabled = true;
+
+                socket.emit(
+                    "skipChat"
+                );
+
+                messages.innerHTML = "";
+
+                messageInput.value = "";
+
+                messageInput.disabled =
+                    true;
+
+                status.textContent =
+                    "Recherche de quelqu'un...";
+
+            }
+        );
+
+
+        // =================================================
+        // PARTENAIRE PARTI AVEC "PASSER"
+        // =================================================
+
+        socket.on(
+            "partnerSkipped",
+            () => {
+
+                messages.innerHTML = "";
+
+                status.textContent =
+                    "L'autre personne est partie.";
+
+                setTimeout(
+                    () => {
+
+                        status.textContent =
+                            "Vous pouvez rechercher quelqu'un d'autre.";
+
+                        skipButton.disabled =
+                            false;
+
+                    },
+                    1500
+                );
+
+            }
+        );
+
+
+        // =================================================
+        // PARTENAIRE FERME LA PAGE
+        // =================================================
+
+        socket.on(
+            "partnerDisconnected",
+            () => {
+
+                messages.innerHTML = "";
+
+                status.textContent =
+                    "L'autre personne a quitté la conversation.";
+
+                messageInput.disabled =
+                    true;
+
+                setTimeout(
+                    () => {
+
+                        status.textContent =
+                            "Vous pouvez rechercher quelqu'un d'autre.";
+
+                        skipButton.disabled =
+                            false;
+
+                    },
+                    1500
+                );
+
+            }
+        );
+
+
+        // =================================================
+        // SERVEUR COMPLET
+        // =================================================
+
+        socket.on(
+            "serverFull",
+            () => {
+
+                status.textContent =
+                    "Prattle est actuellement complet.";
+
+                startButton.textContent =
+                    "Site complet";
+
+                startButton.disabled =
+                    true;
+
+                messages.innerHTML =
+                    `<div class="full-message">
+                        Le nombre maximum de personnes connectées est actuellement atteint.
+                        <br><br>
+                        Réessaie dans quelques instants.
+                    </div>`;
+
+            }
+        );
+
+
+        // =================================================
+        // RÉCEPTION D'UN MESSAGE
+        // =================================================
+
+        socket.on(
+            "message",
+            (data) => {
+
+                const div =
+                    document.createElement("div");
+
+                div.classList.add(
+                    "message"
+                );
+
+                if (
+                    data.sender === socket.id
+                ) {
+
+                    div.classList.add(
+                        "mine"
+                    );
+
+                } else {
+
+                    div.classList.add(
+                        "other"
+                    );
+
+                }
+
+                // textContent = sécurité
+                // contre l'injection HTML
+                div.textContent =
+                    data.text;
+
+                messages.appendChild(
+                    div
+                );
+
+                messages.scrollTop =
+                    messages.scrollHeight;
+
+            }
+        );
 
     </script>
 
